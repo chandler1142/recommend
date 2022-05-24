@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Optional;
+import java.util.*;
 
 @RestController
 @RequestMapping("/movie")
@@ -40,6 +40,24 @@ public class MovieController {
     public AjaxResult getById(@RequestParam("id") int id) {
         Optional<MovieEntity> entity = movieRepository.findById(id);
         return AjaxResult.success(entity.get());
+    }
+
+    @GetMapping("/getAllTypes")
+    public AjaxResult getAllTypes() {
+        Iterable<MovieEntity> allMovies = movieRepository.findAll();
+        Iterator<MovieEntity> iterator = allMovies.iterator();
+        Set<String> categorySet = new HashSet<>();
+        while (iterator.hasNext()) {
+            MovieEntity entity = iterator.next();
+            String[] categories = entity.getCategory().split(",");
+            Arrays.stream(categories).forEach(
+                    n -> {
+                        String element = n.trim();
+                        categorySet.add(element);
+                    }
+            );
+        }
+        return AjaxResult.success(categorySet);
     }
 
 }

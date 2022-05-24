@@ -19,12 +19,13 @@ public class UserBehaviorEntity {
 
     private Date time;
 
-    private String userName;
+    private Integer userId;
 
     private Integer movieId;
 
     /**
-     * 不感兴趣
+     *  点击
+     *  不感兴趣
      *  收藏
      *  立即观看
      */
@@ -32,4 +33,15 @@ public class UserBehaviorEntity {
 
     private String agent;
 
+    @Override
+    public String toString() {
+        return "UserBehaviorEntity{" +
+                "id=" + id +
+                ", time=" + time +
+                ", userId='" + userId + '\'' +
+                ", movieId=" + movieId +
+                ", event='" + event + '\'' +
+                ", agent='" + agent + '\'' +
+                '}';
+    }
 }
