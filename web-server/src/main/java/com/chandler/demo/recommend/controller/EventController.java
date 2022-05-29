@@ -14,7 +14,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.chandler.demo.recommend.model.SessionContainer.userTokenMap;
@@ -62,7 +65,7 @@ public class EventController {
         }
 
         //1. 取出前的800个用户
-        for (int i = 0; i < 800; i++) {
+        for (int i = 0; i < 1000; i++) {
             String userName = "test" + i;
             UserEntity userEntity = userRepository.findByName(userName);
             String[] flags = userEntity.getMovieFlags().split(",");
@@ -81,14 +84,10 @@ public class EventController {
                 return needed;
             }).collect(Collectors.toList());
 
-            //3. 每个用户随机对筛选出来的50部电影发生行为
+            //3. 每个用户随机对筛选出来的电影发生500次行为
             List<UserBehaviorEntity> records = new ArrayList<>();
-            Set<Integer> handled = new HashSet<>();
-            while (handled.size() < Math.min(20, selectedMovies.size()-10)) {
+            while (records.size() < 500) {
                 MovieEntity movieEntity = selectedMovies.get((int) (Math.random() * selectedMovies.size()));
-                if (handled.contains(movieEntity.getId())) {
-                    continue;
-                }
 
                 UserBehaviorEntity entity = new UserBehaviorEntity();
                 String[] events = {"click", "NotInterested", "marked", "watch"};
@@ -103,7 +102,6 @@ public class EventController {
                 entity.setTime(date);
 
                 records.add(entity);
-                handled.add(movieEntity.getId());
             }
             userBehaviorRepository.saveAll(records);
             System.out.println("处理完成用户: " + userName);
