@@ -30,7 +30,7 @@ object UserBehaviorCompute {
     //    val ubScore = 1.0
 
     /**
-     * 认为行为过物品就算感兴趣
+     * 认为行为过物品就算感兴趣, 权重为1
      */
     df.createOrReplaceTempView("user_behavior")
     scoreDF.createOrReplaceTempView("dws_user_behavior_score")
