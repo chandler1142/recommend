@@ -5,8 +5,6 @@ import org.apache.spark.ml.recommendation.{ALS, ALSModel}
 import org.apache.spark.sql.functions.{col, explode}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
-import java.text.SimpleDateFormat
-import java.util.Date
 import scala.collection.mutable.ArrayBuffer
 
 
@@ -16,7 +14,8 @@ class ALSRecall(data: DataFrame) {
   def getModel(maxIter: Int,
                rankArray: Array[Int],
                regArray: Array[Double],
-               alphaArray: Array[Double]): ALSModel = {
+               alphaArray: Array[Double],
+               path: String): ALSModel = {
 
     val Array(training, test) =
       data.randomSplit(Array(0.8, 0.2))
@@ -43,28 +42,19 @@ class ALSRecall(data: DataFrame) {
         .setAlpha(alpha)
 
       val model = als.fit(training)
-      //冷启动的处理
+      //冷启动的处理，如果输入的用户id不在训练的列表范围，不会包含预测结果结果在prediction中
       model.setColdStartStrategy("drop")
       val predict = model.transform(test)
-      //视频里的评估指标是mse
-      //这里只比较了rmse
       val rmse = getEvaluate(predict)
-      //      println(rmse)
       listMSE += rmse
       mapModel += (rmse -> model)
-
     }
 
     //获取最优的模型
-
     val minMSE = listMSE.min
     val bestModel = mapModel(minMSE)
 
-    val format = new SimpleDateFormat("yyyy-MM-dd")
-    val date = format.format(new Date())
-    val modelPath = "./model/als_model/" + date
-
-    bestModel.save(modelPath)
+    bestModel.write.overwrite().save(path)
     bestModel
   }
 
