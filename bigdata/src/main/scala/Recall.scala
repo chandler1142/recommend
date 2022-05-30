@@ -1,10 +1,11 @@
-import org.apache.spark.ml.recommendation.ALSModel
-import org.apache.spark.sql.{DataFrame, SparkSession}
-import recall.ALSRecall
-import utils.{ModelUtil, PropertiesUtil}
-
 import java.text.SimpleDateFormat
 import java.util.{Date, Properties}
+
+import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.ml.recommendation.ALSModel
+import org.apache.spark.sql.{DataFrame, SparkSession}
+import recall.{ALSRecall, ItemCFRecall}
+import utils.{ModelUtil, PropertiesUtil}
 
 object Recall {
 
@@ -33,6 +34,28 @@ object Recall {
     modelUtil.saveRecall(alsRecallData, clALS)
   }
 
+  def executeItemCFRecommend(data: DataFrame, path: String): Unit = {
+    //生成候选集
+    //召回2：基于物品的协同过滤
+    val itemFactors = spark.read.parquet(path)
+    val item2Item = ItemCFRecall()
+    //获取物品的相似度矩阵 相似度采用余弦相似度
+    /**
+     * 耗时约30m
+     *
+     * */
+    val itemCosSim = item2Item.getCosSim(itemFactors, spark)
+    //广播相似度矩阵
+    val itemCosSimBd: Broadcast[DataFrame] =
+      spark.sparkContext.broadcast(itemCosSim)
+    //获取推荐
+    val item2ItemRecallData
+    = item2Item.getItem2ItemRecall(data,
+      itemCosSimBd, spark)
+    //存储候选集
+    modelUtil.saveRecall(item2ItemRecallData, colItem2Item)
+  }
+
   def main(args: Array[String]): Unit = {
     spark = SparkSession
       .builder()
@@ -50,41 +73,20 @@ object Recall {
 
     modelUtil = ModelUtil(spark)
     val data: DataFrame = modelUtil.getUserItemRating
-    val path = "/model/als_model/" + new SimpleDateFormat("yyyy-MM-dd").format(new Date())
-    println("model path: " + path)
 
     /**
      * 使用ALS推荐
      */
-    //    executeALSRecommend(data, path)
+    val path = "/model/als_model/" + new SimpleDateFormat("yyyy-MM-dd").format(new Date())
+    println("model path: " + path)
+//    executeALSRecommend(data, path)
 
     /**
      *
      * 获取上一个任务存储的ALS模型生成的物品特征向量
      */
     val itemPath = path + "/itemFactors"
-
-    val itemFactors = spark.read.parquet(path)
-
-
-    //    //生成候选集
-    //    //召回2：基于物品的协同过滤
-    //    val item2Item = ItemCFRecall()
-    //    //获取物品的相似度矩阵 相似度采用余弦相似度
-    //    /**
-    //     * 耗时约30m
-    //     *
-    //     * */
-    //    val itemCosSim = item2Item.getCosSim(itemFactors,spark)
-    //    //广播相似度矩阵
-    //    val itemCosSimBd:Broadcast[DataFrame] =
-    //      spark.sparkContext.broadcast(itemCosSim)
-    //    //获取推荐
-    //    val item2ItemRecallData
-    //    =  item2Item.getItem2ItemRecall(data,
-    //      itemCosSimBd,spark)
-    //    //存储候选集
-    //    modelUtil.saveRecall(item2ItemRecallData,colItem2Item)
+    executeItemCFRecommend(data, itemPath)
 
 
     spark.stop()

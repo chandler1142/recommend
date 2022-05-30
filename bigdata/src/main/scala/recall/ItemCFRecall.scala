@@ -35,7 +35,6 @@ class ItemCFRecall extends Serializable {
               //物品相似度矩阵
               val outPut = new Array[(Int, Int, Float)](size_1 * size_2)
               val pq = mutable.PriorityQueue[(Int, Float)]()
-              val rank = size_2
               var i = 0
               val operator = new F2jBLAS
               itF_1.foreach {
@@ -43,6 +42,7 @@ class ItemCFRecall extends Serializable {
                   itF_2.foreach {
                     case (item2, item2F) =>
                       //计算余弦相似度
+                      val rank = item1F.length
                       val sim = cosinSim(
                         operator,
                         item1F,
@@ -61,7 +61,7 @@ class ItemCFRecall extends Serializable {
 
               outPut.toSeq
           }
-      }.toDF("itemid_1","itemid_2","sim")
+      }.toDF("movie_id_1","movie_id_2","sim")
     itemCosinSim
 
   }
@@ -76,7 +76,7 @@ class ItemCFRecall extends Serializable {
     /**
       * data 表结构
       * 用户id 物品id  打分
-      * uid    itemid  rating
+      * user_id    movie_id  rating
       *
       * itemSim 表结构
       * 物品id 1  物品id 2  物品1和物品2相似度
@@ -89,13 +89,13 @@ class ItemCFRecall extends Serializable {
     //现在要推测的就是用户对itemid_1的兴趣度
 
     val interest = data.join(itemSim,
-      data("itemid") === itemSim("itemid_2"))
-      .where(col("itemid") =!= col("itemid_1"))
-      .where(col("itemid_2") =!= col("itemid_1"))
+      data("movie_id") === itemSim("movie_id_2"))
+      .where(col("movie_id") =!= col("movie_id_1"))
+      .where(col("movie_id_2") =!= col("movie_id_1"))
       .select(
-        data("uid"),
+        data("user_id"),
         //        data("itemid"),
-        itemSim("itemid_1"),
+        itemSim("movie_id_1"),
         //        itemSim("itemid_2"),
         (data("rating")*itemSim("sim")).as("interest")
       )
@@ -104,21 +104,19 @@ class ItemCFRecall extends Serializable {
     //这里是最耗时的地方
     //表的数量特别的大，要注意OOM
 
-    val recallData = interest.groupBy(col("uid"),
-      col("itemid_1"))
+    val recallData = interest.groupBy(col("user_id"),
+      col("movie_id_1"))
       .agg(sum(col("interest")))
       .withColumnRenamed("sum(interest)",
         "recom")
-      .withColumnRenamed("itemid_1",
-        "itemid")
-      .select(col("uid"),
-        col("itemid"),
+      .withColumnRenamed("movie_id_1",
+        "movie_id")
+      .select(col("user_id"),
+        col("movie_id"),
         col("recom"))
       .orderBy(desc("recom"))
 
     recallData
-
-
   }
 
   //余弦相似度计算
