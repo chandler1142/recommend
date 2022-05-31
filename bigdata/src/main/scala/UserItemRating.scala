@@ -8,7 +8,7 @@ object UserItemRating {
     val spark = SparkSession
       .builder()
       .appName(this.getClass.getSimpleName)
-      .master("local[2]")
+      .master("local[*]")
       .getOrCreate()
 
     val mysqlUrl = PropertiesUtil.getPropString("jdbc.mysql.url")

@@ -1,7 +1,7 @@
+import java.util.Properties
+
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import utils.PropertiesUtil
-
-import java.util.Properties
 
 /**
  * 定时执行，每日凌晨执行计算
@@ -25,9 +25,16 @@ object UserBehaviorCompute {
     println(df.count())
     println(df.rdd.partitions.size)
 
-    //行为权重，这里都默认都一样
-    //    val ubWeight = 1.0
-    //    val ubScore = 1.0
+    //行为权重(分数定义)
+    //Array("click", "NotInterested", "marked", "watch");
+    def behaviorAsScore(behavior: String): Int = behavior match {
+      case "NotInterested" => -10
+      case "click" => 1
+      case "marked" => 3
+      case "watch" => 5
+    }
+
+    spark.udf.register("behaviorAsScore", behaviorAsScore(_: String): Int)
 
     /**
      * 认为行为过物品就算感兴趣, 权重为1
@@ -36,7 +43,7 @@ object UserBehaviorCompute {
     scoreDF.createOrReplaceTempView("dws_user_behavior_score")
 
     val userBehaviorScoreDF: DataFrame = spark.sql(
-      "select user_id, movie_id, count(*) as score from user_behavior group by user_id, movie_id "
+      "select user_id, movie_id, sum(behaviorAsScore(event)) as score from user_behavior group by user_id, movie_id "
     )
 
     userBehaviorScoreDF.createOrReplaceTempView("user_behavior_score")

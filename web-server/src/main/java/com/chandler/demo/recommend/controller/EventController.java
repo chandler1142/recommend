@@ -64,8 +64,8 @@ public class EventController {
             movieEntities.add(iterator.next());
         }
 
-        //1. 取出前的800个用户
-        for (int i = 0; i < 1000; i++) {
+        //1. 取出前的100个用户
+        for (int i = 0; i < 50; i++) {
             String userName = "test" + i;
             UserEntity userEntity = userRepository.findByName(userName);
             String[] flags = userEntity.getMovieFlags().split(",");
@@ -84,14 +84,33 @@ public class EventController {
                 return needed;
             }).collect(Collectors.toList());
 
+            List<MovieEntity> dislikeMovies = movieEntities.stream().filter(e -> {
+                boolean dislike = true;
+                for (MovieEntity entity : selectedMovies) {
+                    if (entity.getId().equals(e.getId())) {
+                        dislike = false;
+                        break;
+                    }
+                }
+                return dislike;
+            }).collect(Collectors.toList());
+
             //3. 每个用户随机对筛选出来的电影发生500次行为
             List<UserBehaviorEntity> records = new ArrayList<>();
-            while (records.size() < 500) {
-                MovieEntity movieEntity = selectedMovies.get((int) (Math.random() * selectedMovies.size()));
+            while (records.size() < 100) {
 
                 UserBehaviorEntity entity = new UserBehaviorEntity();
                 String[] events = {"click", "NotInterested", "marked", "watch"};
-                entity.setEvent(events[(int) (Math.random() * events.length)]);
+
+                String selectedEvent = events[(int) (Math.random() * events.length)];
+                MovieEntity movieEntity = null;
+
+                if(selectedEvent.equalsIgnoreCase("NotInterested")) {
+                    movieEntity = dislikeMovies.get((int) (Math.random() * dislikeMovies.size()));
+                } else {
+                    movieEntity = selectedMovies.get((int) (Math.random() * selectedMovies.size()));
+                }
+                entity.setEvent(selectedEvent);
                 entity.setAgent("windows");
                 entity.setUserId(userEntity.getId());
                 entity.setMovieId(movieEntity.getId());
