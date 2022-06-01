@@ -21,6 +21,7 @@ object LRSorting extends Serializable {
       .master("local[*]")
       .getOrCreate()
 
+    spark.sparkContext.setLogLevel("error")
     val mysqlUrl = PropertiesUtil.getPropString("jdbc.mysql.url")
     val prop = new Properties()
     prop.put("user", PropertiesUtil.getPropString("jdbc.mysql.username"))
@@ -54,7 +55,7 @@ object LRSorting extends Serializable {
     val categoryVecTransformer: Word2Vec = new Word2Vec()
       .setInputCol("categoryOut")
       .setOutputCol("category_vec")
-      .setVectorSize(30)
+      .setVectorSize(10)
       .setMinCount(0)
 
     val flagsRT: RegexTokenizer = new RegexTokenizer()
@@ -65,7 +66,7 @@ object LRSorting extends Serializable {
     val userFlagVecTransformer: Word2Vec = new Word2Vec()
       .setInputCol("movie_flags_out")
       .setOutputCol("movie_flags_vec")
-      .setVectorSize(30)
+      .setVectorSize(10)
       .setMinCount(0)
 
     val sqlSelector: SQLTransformer = new SQLTransformer()
@@ -74,7 +75,7 @@ object LRSorting extends Serializable {
           |select clicked, category_vec, movie_flags_vec from __THIS__
           |""".stripMargin)
 
-    val lr = new GBTClassifier()
+    val lr = new LogisticRegression()
 
     val stages1 = Array(categoryRT, categoryVecTransformer, flagsRT, userFlagVecTransformer, sqlSelector)
 
@@ -92,9 +93,9 @@ object LRSorting extends Serializable {
 
     val params = new ParamGridBuilder()
       .addGrid(rf.formula, Array("clicked ~ category_vec + movie_flags_vec"))
-//      .addGrid(lr.elasticNetParam, Array(0.0, 0.5, 1.0))
-//      .addGrid(lr.regParam, Array(0.1, 2.0))
-//      .addGrid(lr.maxIter, Array(100))
+      .addGrid(lr.elasticNetParam, Array(0.0, 0.5, 1.0))
+      .addGrid(lr.regParam, Array(0.1, 2.0))
+      .addGrid(lr.maxIter, Array(100))
       .build()
 
     val evaluator: BinaryClassificationEvaluator = new BinaryClassificationEvaluator()

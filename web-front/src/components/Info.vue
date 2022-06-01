@@ -59,34 +59,72 @@
     </el-row>
 
 
-    <br></br>
-    <div style="text-align:left">推荐列表:</div>
-    <el-card shadow="never">
-      <div>
-        <el-row :gutter="10">
-          <el-col
-            :span="4"
-            :class="{ line: (index + 1) % 3 != 0 }"
-            style="margin:15px 0px;"
-            v-for="(item, index) in recommendList"
-            :key="index"
-          >
+    <br/>
+    推荐列表:
+    <div class="demo_warp" style="text-align:left">
+      <ul class="tab_tit">
+        <li :class="n==1?'active':''" @click="n=1">综合推荐</li>
+        <li :class="n==2?'active':''" @click="n=2">ALS推荐</li>
+      </ul>
+      <div class="tab_con">
+        <div v-show="n==1">
+          <el-card shadow="never">
+            <div>
+              <el-row :gutter="10">
+                <el-col
+                  :span="4"
+                  :class="{ line: (index + 1) % 3 != 0 }"
+                  style="margin:15px 0px;"
+                  v-for="(item, index) in recommendList"
+                  :key="index"
+                >
             <span>
-                <img :src="item.picUrl" alt="" style="width: 120px;height: 120px" :id="item.id" @click="clickRecommend"  v-click-stat="{event_name:'click',type:'button'}">
+                <img :src="item.picUrl" alt="" style="width: 120px;height: 120px" :id="item.id" @click="clickRecommend"
+                     v-click-stat="{event_name:'click',type:'button'}">
             </span>
-            <p>{{ item.name }}</p>
-            <p>{{ item.category }}</p>
-            <p>{{ item.region }}</p>
-          </el-col>
-        </el-row>
+                  <p>{{ item.name }}</p>
+                  <p>{{ item.category }}</p>
+                  <p>{{ item.region }}</p>
+                </el-col>
+              </el-row>
+            </div>
+          </el-card>
+        </div>
       </div>
-    </el-card>
-    <!--    </el-row>-->
+    </div>
 
 
   </el-row>
 </template>
 
+<style>
+.demo_warp .tab_tit {
+  display: flex;
+  flex: 1;
+  margin: .2rem;
+  cursor:pointer;
+}
+
+.demo_warp .active {
+  color: red;
+  background-color: cadetblue;
+}
+
+.demo_warp ul li {
+  list-style: none;
+  width: 23%;
+  text-align: center;
+  background-color: #ccc;
+  margin: 0 1%;
+}
+
+.demo_warp .tab_con {
+  width: 100%;
+  height: 3rem;
+  border: 1px solid rgb(85, 85, 177);
+  text-align: center;
+}
+</style>
 <script>
 export default {
   name: 'App',
@@ -94,7 +132,8 @@ export default {
     return {
       url: '',
       movieData: {},
-      recommendList: []
+      recommendList: [],
+      n: 1
     }
   },
   mounted() {
@@ -119,8 +158,8 @@ export default {
       })
     },
     loadRecommend() {
-      let token =  window.sessionStorage.getItem("token")
-      if(!token) {
+      let token = window.sessionStorage.getItem("token")
+      if (!token) {
         console.log('丢失登录信息')
         return
       }
@@ -140,7 +179,7 @@ export default {
     clickRecommend(e) {
       console.log(e)
       let id = e.target.id
-      this.$router.push('/info/'+id)
+      this.$router.push('/info/' + id)
       this.$router.go()
     }
   }
