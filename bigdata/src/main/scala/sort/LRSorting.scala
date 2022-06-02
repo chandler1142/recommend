@@ -1,15 +1,16 @@
 package sort
 
-import java.util.Properties
-
-import org.apache.spark.ml.{Pipeline, PipelineModel}
-import org.apache.spark.ml.classification.{GBTClassifier, LogisticRegression, LogisticRegressionModel}
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.classification.LogisticRegression
 import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
-import org.apache.spark.ml.feature.{RFormula, RegexTokenizer, SQLTransformer, Word2Vec}
+import org.apache.spark.ml.feature.RFormula
 import org.apache.spark.ml.tuning.{ParamGridBuilder, TrainValidationSplit, TrainValidationSplitModel}
-import org.apache.spark.sql.functions.{col, _}
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import utils.PropertiesUtil
+
+import java.util.Properties
 
 object LRSorting extends Serializable {
 
@@ -34,106 +35,118 @@ object LRSorting extends Serializable {
       .select(col("id"), col("age"), col("sex"), col("movie_flags"))
       .withColumnRenamed("id", "o_user_id")
 
+
     val userBHDF: DataFrame = spark.read.jdbc(mysqlUrl, "user_behavior", prop)
       .withColumn("clicked", when(col("event") === "NotInterested", 0).otherwise(1))
       .select("clicked", "movie_id", "user_id")
 
-    val dataDF: DataFrame = userBHDF.join(movieDF, userBHDF("movie_id") === movieDF("o_movie_id"))
+    val rawDataDF: DataFrame = userBHDF.join(movieDF, userBHDF("movie_id") === movieDF("o_movie_id"))
       .join(userDF, userBHDF("user_id") === userDF("o_user_id"))
-      .select("clicked", "category", "movie_flags")
+      .select("clicked", "category", "movie_flags", "age", "sex")
 
-    dataDF.show(1000)
+    //"喜剧","情色","科幻","运动","恐怖","儿童","灾难","同性","犯罪","西部","动画","传记","纪录片","惊悚","冒险","奇幻","歌舞","历史","悬疑","古装","音乐","剧情","短片","黑色电影","武侠","爱情","家庭","战争","动作"
+    val dataDF: DataFrame = rawDataDF
+      .withColumn("u_xiju", when(col("category").contains("喜剧"), 1).otherwise(0))
+      .withColumn("u_qingse", when(col("category").contains("情色"), 1).otherwise(0))
+      .withColumn("u_kehuan", when(col("category").contains("科幻"), 1).otherwise(0))
+      .withColumn("u_yundong", when(col("category").contains("运动"), 1).otherwise(0))
+      .withColumn("u_kongbu", when(col("category").contains("恐怖"), 1).otherwise(0))
+      .withColumn("u_ertong", when(col("category").contains("儿童"), 1).otherwise(0))
+      .withColumn("u_zainan", when(col("category").contains("灾难"), 1).otherwise(0))
+      .withColumn("u_tongxing", when(col("category").contains("同性"), 1).otherwise(0))
+      .withColumn("u_fanzui", when(col("category").contains("犯罪"), 1).otherwise(0))
+      .withColumn("u_xibu", when(col("category").contains("西部"), 1).otherwise(0))
+      .withColumn("u_donghua", when(col("category").contains("动画"), 1).otherwise(0))
+      .withColumn("u_zhuanji", when(col("category").contains("传记"), 1).otherwise(0))
+      .withColumn("u_jilupian", when(col("category").contains("纪录片"), 1).otherwise(0))
+      .withColumn("u_jingsong", when(col("category").contains("惊悚"), 1).otherwise(0))
+      .withColumn("u_maoxian", when(col("category").contains("冒险"), 1).otherwise(0))
+      .withColumn("u_qihuan", when(col("category").contains("奇幻"), 1).otherwise(0))
+      .withColumn("u_gewu", when(col("category").contains("歌舞"), 1).otherwise(0))
+      .withColumn("u_lishi", when(col("category").contains("历史"), 1).otherwise(0))
+      .withColumn("u_xuanyi", when(col("category").contains("悬疑"), 1).otherwise(0))
+      .withColumn("u_guzhuang", when(col("category").contains("古装"), 1).otherwise(0))
+      .withColumn("u_yinyue", when(col("category").contains("音乐"), 1).otherwise(0))
+      .withColumn("u_juqing", when(col("category").contains("剧情"), 1).otherwise(0))
+      .withColumn("u_duanpian", when(col("category").contains("短片"), 1).otherwise(0))
+      .withColumn("u_heisedianying", when(col("category").contains("黑色电影"), 1).otherwise(0))
+      .withColumn("u_wuxia", when(col("category").contains("武侠"), 1).otherwise(0))
+      .withColumn("u_aiqing", when(col("category").contains("爱情"), 1).otherwise(0))
+      .withColumn("u_jiating", when(col("category").contains("家庭"), 1).otherwise(0))
+      .withColumn("u_zhanzheng", when(col("category").contains("战争"), 1).otherwise(0))
+      .withColumn("u_dongzuo", when(col("category").contains("动作"), 1).otherwise(0))
+      .withColumn("o_xiju", when(col("movie_flags").contains("喜剧"), 1).otherwise(0))
+      .withColumn("o_qingse", when(col("movie_flags").contains("情色"), 1).otherwise(0))
+      .withColumn("o_kehuan", when(col("movie_flags").contains("科幻"), 1).otherwise(0))
+      .withColumn("o_yundong", when(col("movie_flags").contains("运动"), 1).otherwise(0))
+      .withColumn("o_kongbu", when(col("movie_flags").contains("恐怖"), 1).otherwise(0))
+      .withColumn("o_ertong", when(col("movie_flags").contains("儿童"), 1).otherwise(0))
+      .withColumn("o_zainan", when(col("movie_flags").contains("灾难"), 1).otherwise(0))
+      .withColumn("o_tongxing", when(col("movie_flags").contains("同性"), 1).otherwise(0))
+      .withColumn("o_fanzui", when(col("movie_flags").contains("犯罪"), 1).otherwise(0))
+      .withColumn("o_xibu", when(col("movie_flags").contains("西部"), 1).otherwise(0))
+      .withColumn("o_donghua", when(col("movie_flags").contains("动画"), 1).otherwise(0))
+      .withColumn("o_zhuanji", when(col("movie_flags").contains("传记"), 1).otherwise(0))
+      .withColumn("o_jilupian", when(col("movie_flags").contains("纪录片"), 1).otherwise(0))
+      .withColumn("o_jingsong", when(col("movie_flags").contains("惊悚"), 1).otherwise(0))
+      .withColumn("o_maoxian", when(col("movie_flags").contains("冒险"), 1).otherwise(0))
+      .withColumn("o_qihuan", when(col("movie_flags").contains("奇幻"), 1).otherwise(0))
+      .withColumn("o_gewu", when(col("movie_flags").contains("歌舞"), 1).otherwise(0))
+      .withColumn("o_lishi", when(col("movie_flags").contains("历史"), 1).otherwise(0))
+      .withColumn("o_xuanyi", when(col("movie_flags").contains("悬疑"), 1).otherwise(0))
+      .withColumn("o_guzhuang", when(col("movie_flags").contains("古装"), 1).otherwise(0))
+      .withColumn("o_yinyue", when(col("movie_flags").contains("音乐"), 1).otherwise(0))
+      .withColumn("o_juqing", when(col("movie_flags").contains("剧情"), 1).otherwise(0))
+      .withColumn("o_duanpian", when(col("movie_flags").contains("短片"), 1).otherwise(0))
+      .withColumn("o_heisedianying", when(col("movie_flags").contains("黑色电影"), 1).otherwise(0))
+      .withColumn("o_wuxia", when(col("movie_flags").contains("武侠"), 1).otherwise(0))
+      .withColumn("o_aiqing", when(col("movie_flags").contains("爱情"), 1).otherwise(0))
+      .withColumn("o_jiating", when(col("movie_flags").contains("家庭"), 1).otherwise(0))
+      .withColumn("o_zhanzheng", when(col("movie_flags").contains("战争"), 1).otherwise(0))
+      .withColumn("o_dongzuo", when(col("movie_flags").contains("动作"), 1).otherwise(0))
+      .drop("category", "movie_flags")
 
-    /**
-     * 定义word2vec转换器来处理文本
-     */
-    val categoryRT: RegexTokenizer = new RegexTokenizer()
-      .setInputCol("category")
-      .setOutputCol("categoryOut")
-      .setPattern(",")
 
-    val categoryVecTransformer: Word2Vec = new Word2Vec()
-      .setInputCol("categoryOut")
-      .setOutputCol("category_vec")
-      .setVectorSize(10)
-      .setMinCount(0)
+    dataDF.show(20, false)
+    val Array(train, test) = dataDF.randomSplit(Array(0.8, 0.2))
 
-    val flagsRT: RegexTokenizer = new RegexTokenizer()
-      .setInputCol("movie_flags")
-      .setOutputCol("movie_flags_out")
-      .setPattern(",")
+    val lr = new LogisticRegression().setLabelCol("label").setFeaturesCol("features")
 
-    val userFlagVecTransformer: Word2Vec = new Word2Vec()
-      .setInputCol("movie_flags_out")
-      .setOutputCol("movie_flags_vec")
-      .setVectorSize(10)
-      .setMinCount(0)
-
-    val sqlSelector: SQLTransformer = new SQLTransformer()
-      .setStatement(
-        """
-          |select clicked, category_vec, movie_flags_vec from __THIS__
-          |""".stripMargin)
-
-    val lr = new LogisticRegression()
-
-    val stages1 = Array(categoryRT, categoryVecTransformer, flagsRT, userFlagVecTransformer, sqlSelector)
-
-    val pipeline1: Pipeline = new Pipeline().setStages(stages1)
-
-    val preparedDF: DataFrame = pipeline1.fit(dataDF).transform(dataDF)
-    preparedDF.show(false)
-    val Array(train, test) = preparedDF.randomSplit(Array(0.75, 0.25))
-
-
-    //2. 准备训练
     val rf: RFormula = new RFormula()
-    val stage2 = Array(rf, lr)
-    val pipeline2 = new Pipeline().setStages(stage2)
+      .setFormula("clicked ~ .")
+    val stage = Array(rf, lr)
+    val pipeline = new Pipeline().setStages(stage)
 
     val params = new ParamGridBuilder()
-      .addGrid(rf.formula, Array("clicked ~ category_vec + movie_flags_vec"))
-      .addGrid(lr.elasticNetParam, Array(0.0, 0.5, 1.0))
-      .addGrid(lr.regParam, Array(0.1, 2.0))
-      .addGrid(lr.maxIter, Array(100))
+      .addGrid(lr.maxIter, Array(500))
       .build()
 
     val evaluator: BinaryClassificationEvaluator = new BinaryClassificationEvaluator()
-      .setMetricName("areaUnderROC")
+      .setMetricName("areaUnderPR")
       .setRawPredictionCol("prediction")
       .setLabelCol("label")
 
-    val tvs: TrainValidationSplit = new TrainValidationSplit().setTrainRatio(0.75)
+    val tvs: TrainValidationSplit = new TrainValidationSplit()
+      .setTrainRatio(0.75)
       .setEstimatorParamMaps(params)
-      .setEstimator(pipeline2)
+      .setEstimator(pipeline)
       .setEvaluator(evaluator)
 
     val tvsFitted: TrainValidationSplitModel = tvs.fit(train)
 
     val predictionRate: Double = evaluator.evaluate(tvsFitted.transform(test))
-    println("PRECISION: "  + predictionRate)
+    println("PRECISION: " + predictionRate)
 
 //    val trainedPipeline = tvsFitted.bestModel.asInstanceOf[PipelineModel]
 //    val trainedLR: LogisticRegressionModel = trainedPipeline.stages(1).asInstanceOf[LogisticRegressionModel]
 //    val summaryLR = trainedLR.summary
 //    summaryLR.objectiveHistory.foreach(println)
 
-    //    val Array(train, test) = preparedDF.randomSplit(Array(0.75, 0.2))
 
-    //    val lr: LogisticRegression = new LogisticRegression()
-    //      .setMaxIter(50)
-    //      .setRegParam(0.5)
-    //      .setElasticNetParam(0.5)
-    //      .setLabelCol("label")
-    //      .setFeaturesCol("features")
-    //    println(lr.explainParams())
-
-    //    val fittedLR: LogisticRegressionModel = lr.fit(train)
-    //    fittedLR.transform(train).select("label", "prediction").show(false)
-    //
-    //    println(fittedLR.evaluate(test))
-    //    println("*"*100)
-    //    println(fittedLR.summary.objectiveHistory)
+    val out: RDD[(Double, Double)] = tvsFitted.transform(test)
+      .select("prediction", "label")
+      .rdd.map(x => (x(0).asInstanceOf[Double], x(1).asInstanceOf[Double]))
+    out.foreach(println)
 
   }
 }
