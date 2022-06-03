@@ -19,4 +19,4 @@ spring:
     host: 8.130.29.166
     password: redis123!
     port: 6379
-    timeout: 5000ms
+    timeout: 60000ms

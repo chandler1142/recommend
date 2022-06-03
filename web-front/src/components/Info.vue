@@ -65,16 +65,17 @@
       <ul class="tab_tit">
         <li :class="n==1?'active':''" @click="n=1">综合推荐</li>
         <li :class="n==2?'active':''" @click="n=2">ALS推荐</li>
+        <li :class="n==3?'active':''" @click="n=3">ItemCF推荐</li>
       </ul>
       <div class="tab_con">
         <div v-show="n==1">
-          <el-card shadow="never">
+          <el-card v-if="n==1" shadow="never">
             <div>
               <el-row :gutter="10">
                 <el-col
                   :span="4"
-                  :class="{ line: (index + 1) % 3 != 0 }"
-                  style="margin:15px 0px;"
+                  :class="{ line: (index + 1) % 5 }"
+                  style="margin:5px 0px;"
                   v-for="(item, index) in recommendList"
                   :key="index"
                 >
@@ -82,9 +83,55 @@
                 <img :src="item.picUrl" alt="" style="width: 120px;height: 120px" :id="item.id" @click="clickRecommend"
                      v-click-stat="{event_name:'click',type:'button'}">
             </span>
-                  <p>{{ item.name }}</p>
+                  <p class="ptext">{{ item.name }}</p>
                   <p>{{ item.category }}</p>
-                  <p>{{ item.region }}</p>
+<!--                  <p>{{ item.region }}</p>-->
+                </el-col>
+              </el-row>
+            </div>
+          </el-card>
+        </div>
+        <div v-show="n==2">
+          <el-card v-if="n==2" shadow="never">
+            <div>
+              <el-row :gutter="10">
+                <el-col
+                  :span="4"
+                  :class="{ line: (index + 1) % 5 }"
+                  style="margin:15px 0px;"
+                  v-for="(item, index) in alsRecommendList"
+                  :key="index"
+                >
+            <span>
+                <img :src="item.picUrl" alt="" style="width: 120px;height: 120px" :id="item.id" @click="clickRecommend"
+                     v-click-stat="{event_name:'click',type:'button'}">
+            </span>
+                  <p class="ptext">{{ item.name }}</p>
+                  <p>{{ item.category }}</p>
+<!--                  <p>{{ item.region }}</p>-->
+                </el-col>
+              </el-row>
+            </div>
+          </el-card>
+        </div>
+        <div v-show="n==3">
+          <el-card v-if="n==3" shadow="never">
+            <div>
+              <el-row :gutter="10">
+                <el-col
+                  :span="4"
+                  :class="{ line: (index + 1) % 5 }"
+                  style="margin:15px 0px;"
+                  v-for="(item, index) in itemCFRecommendList"
+                  :key="index"
+                >
+            <span>
+                <img :src="item.picUrl" alt="" style="width: 120px;height: 120px" :id="item.id" @click="clickRecommend"
+                     v-click-stat="{event_name:'click',type:'button'}">
+            </span>
+                  <p class="ptext">{{ item.name }}</p>
+                  <p>{{ item.category }}</p>
+<!--                  <p>{{ item.region }}</p>-->
                 </el-col>
               </el-row>
             </div>
@@ -124,6 +171,14 @@
   border: 1px solid rgb(85, 85, 177);
   text-align: center;
 }
+
+.ptext {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100px;
+  margin:0 auto;
+}
 </style>
 <script>
 export default {
@@ -133,6 +188,8 @@ export default {
       url: '',
       movieData: {},
       recommendList: [],
+      alsRecommendList: [],
+      itemCFRecommendList: [],
       n: 1
     }
   },
@@ -140,8 +197,48 @@ export default {
     console.log(this.$route.params.id)
     this.loadMovieDataById()
     this.loadRecommend()
+    this.loadALSRecommend()
+    this.loadItemCFRecommend()
   },
   methods: {
+    loadALSRecommend() {
+      let token = window.sessionStorage.getItem("token")
+      if (!token) {
+        console.log('丢失登录信息')
+        return
+      }
+      let fetchUrl = '/recommend/getByALS?token=' + token
+      this.$http({
+        method: 'get',
+        url: fetchUrl,
+      }).then(({data}) => {
+        if (data.code === 200) {
+          this.alsRecommendList = data.data
+          console.log("请求als推荐列表: " + this.alsRecommendList)
+        } else {
+          console.log("请求推荐列表失败")
+        }
+      })
+    },
+    loadItemCFRecommend() {
+      let token = window.sessionStorage.getItem("token")
+      if (!token) {
+        console.log('丢失登录信息')
+        return
+      }
+      let fetchUrl = '/recommend/getByItemCF?token=' + token
+      this.$http({
+        method: 'get',
+        url: fetchUrl,
+      }).then(({data}) => {
+        if (data.code === 200) {
+          this.itemCFRecommendList = data.data
+          console.log("请求item推荐列表: " + this.itemCFRecommendList)
+        } else {
+          console.log("请求推荐列表失败")
+        }
+      })
+    },
     loadMovieDataById() {
       let fetchUrl = '/movie/getById?id=' + this.$route.params.id
       this.$http({
