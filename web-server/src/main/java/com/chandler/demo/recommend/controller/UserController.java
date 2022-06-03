@@ -59,7 +59,7 @@ public class UserController {
 
 
     public String getCategory() {
-        String[] categories = {"喜剧", "情色", "科幻", "运动", "恐怖", "儿童", "灾难", "同性", "犯罪", "西部", "动画", "传记", "纪录片", "惊悚", "冒险", "奇幻", "歌舞", "历史", "悬疑", "争", "动作"};
+        String[] categories = {"喜剧", "情色", "科幻", "运动", "恐怖", "儿童", "灾难", "同性", "犯罪", "西部", "动画", "传记", "纪录片", "惊悚", "冒险", "奇幻", "歌舞", "历史", "悬疑", "战争", "动作"};
         int len = categories.length;
         Set<String> set = new HashSet<>();
         while (set.size() < 3) {

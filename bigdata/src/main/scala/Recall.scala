@@ -77,7 +77,7 @@ object Recall {
     /**
      * 使用ALS推荐
      */
-    val path = "/model/als_model/" + new SimpleDateFormat("yyyy-MM-dd").format(new Date())
+    val path = "./model/als_model/" + new SimpleDateFormat("yyyy-MM-dd").format(new Date())
     println("model path: " + path)
     executeALSRecommend(data, path)
 

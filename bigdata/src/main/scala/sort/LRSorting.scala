@@ -1,19 +1,20 @@
 package sort
 
+import java.text.SimpleDateFormat
+import java.util.{Date, Properties}
+
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.LogisticRegression
 import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
 import org.apache.spark.ml.feature.RFormula
 import org.apache.spark.ml.tuning.{ParamGridBuilder, TrainValidationSplit, TrainValidationSplitModel}
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import utils.PropertiesUtil
+import utils.UDFUtils.matchFlagUDF
 
-import java.util.Properties
 
 object LRSorting extends Serializable {
-
 
   def main(args: Array[String]): Unit = {
     val spark = SparkSession
@@ -44,8 +45,21 @@ object LRSorting extends Serializable {
       .join(userDF, userBHDF("user_id") === userDF("o_user_id"))
       .select("clicked", "category", "movie_flags", "age", "sex")
 
+    //    val matchFlag = (category: String, movieFlag: String) => {
+    //      val categories = category.split(",")
+    //      val movieFlags = movieFlag.split(",")
+    //      for (flag <- movieFlags) {
+    //        if (categories.contains(flag)) {
+    //          return true
+    //        }
+    //      }
+    //
+    //      false
+    //    }
+
     //"喜剧","情色","科幻","运动","恐怖","儿童","灾难","同性","犯罪","西部","动画","传记","纪录片","惊悚","冒险","奇幻","歌舞","历史","悬疑","古装","音乐","剧情","短片","黑色电影","武侠","爱情","家庭","战争","动作"
     val dataDF: DataFrame = rawDataDF
+      .withColumn("matchFlag", matchFlagUDF(col("category"), col("movie_flags")))
       .withColumn("u_xiju", when(col("category").contains("喜剧"), 1).otherwise(0))
       .withColumn("u_qingse", when(col("category").contains("情色"), 1).otherwise(0))
       .withColumn("u_kehuan", when(col("category").contains("科幻"), 1).otherwise(0))
@@ -119,10 +133,11 @@ object LRSorting extends Serializable {
 
     val params = new ParamGridBuilder()
       .addGrid(lr.maxIter, Array(500))
+      .addGrid(lr.standardization, Array(true))
       .build()
 
     val evaluator: BinaryClassificationEvaluator = new BinaryClassificationEvaluator()
-      .setMetricName("areaUnderPR")
+      .setMetricName("areaUnderROC")
       .setRawPredictionCol("prediction")
       .setLabelCol("label")
 
@@ -137,10 +152,13 @@ object LRSorting extends Serializable {
     val predictionRate: Double = evaluator.evaluate(tvsFitted.transform(test))
     println("PRECISION: " + predictionRate)
 
-    val out: RDD[(Double, Double)] = tvsFitted.transform(test)
-      .select("prediction", "label").limit(20)
-      .rdd.map(x => (x(0).asInstanceOf[Double], x(1).asInstanceOf[Double]))
-    out.foreach(println)
+    val out = tvsFitted.transform(test)
+      .select("probability", "prediction", "label").limit(20)
+    //      .rdd.map(x => (x(0).asInstanceOf[Double], x(1).asInstanceOf[Double]))
+    out.rdd.foreach(println)
 
+    //存储模型
+    val path = "./model/lr/" + new SimpleDateFormat("yyyy-MM-dd").format(new Date())
+    tvsFitted.write.overwrite().save(path)
   }
 }
