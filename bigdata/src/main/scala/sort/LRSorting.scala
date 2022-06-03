@@ -1,8 +1,10 @@
 package sort
 
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.{Date, Properties}
 
+import javax.xml.transform.stream.StreamResult
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.LogisticRegression
 import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
@@ -10,6 +12,8 @@ import org.apache.spark.ml.feature.RFormula
 import org.apache.spark.ml.tuning.{ParamGridBuilder, TrainValidationSplit, TrainValidationSplitModel}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.jpmml.model.JAXBUtil
+import org.jpmml.sparkml.{ConverterUtil, PMMLBuilder}
 import utils.PropertiesUtil
 import utils.UDFUtils.matchFlagUDF
 
@@ -44,18 +48,6 @@ object LRSorting extends Serializable {
     val rawDataDF: DataFrame = userBHDF.join(movieDF, userBHDF("movie_id") === movieDF("o_movie_id"))
       .join(userDF, userBHDF("user_id") === userDF("o_user_id"))
       .select("clicked", "category", "movie_flags", "age", "sex")
-
-    //    val matchFlag = (category: String, movieFlag: String) => {
-    //      val categories = category.split(",")
-    //      val movieFlags = movieFlag.split(",")
-    //      for (flag <- movieFlags) {
-    //        if (categories.contains(flag)) {
-    //          return true
-    //        }
-    //      }
-    //
-    //      false
-    //    }
 
     //"喜剧","情色","科幻","运动","恐怖","儿童","灾难","同性","犯罪","西部","动画","传记","纪录片","惊悚","冒险","奇幻","歌舞","历史","悬疑","古装","音乐","剧情","短片","黑色电影","武侠","爱情","家庭","战争","动作"
     val dataDF: DataFrame = rawDataDF
@@ -160,5 +152,9 @@ object LRSorting extends Serializable {
     //存储模型
     val path = "./model/lr/" + new SimpleDateFormat("yyyy-MM-dd").format(new Date())
     tvsFitted.write.overwrite().save(path)
+
+    val pmml = new PMMLBuilder(train.schema, tvsFitted.bestModel).build()
+    JAXBUtil.marshalPMML(pmml, new StreamResult(new File("./model/pmml/lr.pmml")))
+
   }
 }

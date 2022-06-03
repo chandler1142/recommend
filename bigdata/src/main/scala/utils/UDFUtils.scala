@@ -13,8 +13,14 @@ object UDFUtils extends Serializable {
         contained = true
       }
     }
-    if(contained) {
-      1
+    if (contained) {
+      //即便包含，加一下杂音
+      val d: Double = Math.random()
+      if (d > 0.2) {
+        1
+      } else {
+        0
+      }
     } else {
       0
     }
