@@ -137,14 +137,8 @@ object LRSorting extends Serializable {
     val predictionRate: Double = evaluator.evaluate(tvsFitted.transform(test))
     println("PRECISION: " + predictionRate)
 
-//    val trainedPipeline = tvsFitted.bestModel.asInstanceOf[PipelineModel]
-//    val trainedLR: LogisticRegressionModel = trainedPipeline.stages(1).asInstanceOf[LogisticRegressionModel]
-//    val summaryLR = trainedLR.summary
-//    summaryLR.objectiveHistory.foreach(println)
-
-
     val out: RDD[(Double, Double)] = tvsFitted.transform(test)
-      .select("prediction", "label")
+      .select("prediction", "label").limit(20)
       .rdd.map(x => (x(0).asInstanceOf[Double], x(1).asInstanceOf[Double]))
     out.foreach(println)
 
