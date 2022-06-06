@@ -8,6 +8,7 @@ import com.chandler.demo.recommend.entities.UserBehaviorEntity;
 import com.chandler.demo.recommend.entities.UserEntity;
 import com.chandler.demo.recommend.model.AjaxResult;
 import com.chandler.demo.recommend.model.UploadData;
+import com.chandler.demo.recommend.service.RealTimeService;
 import com.chandler.demo.recommend.utils.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +36,9 @@ public class EventController {
     @Autowired
     MovieRepository movieRepository;
 
+    @Autowired
+    RealTimeService realTimeService;
+
     @PostMapping("/upload")
     public AjaxResult upload(@RequestBody UploadData uploadData) {
         System.out.println(uploadData.toString());
@@ -50,8 +54,13 @@ public class EventController {
         entity.setMovieId(Integer.parseInt(movieInfos[movieInfos.length - 1]));
         entity.setTime(uploadData.getTime());
         UserBehaviorEntity savedEntity = userBehaviorRepository.save(entity);
+
+        if (!uploadData.getEvent().equalsIgnoreCase("NotInterested")) {
+            realTimeService.updateParamList(savedEntity.getUserId(), savedEntity.getMovieId(), uploadData.getEvent());
+        }
         return AjaxResult.success(savedEntity);
     }
+
 
     @GetMapping("/mock")
     public AjaxResult mock() {
@@ -105,7 +114,7 @@ public class EventController {
                 String selectedEvent = events[(int) (Math.random() * events.length)];
                 MovieEntity movieEntity = null;
 
-                if(selectedEvent.equalsIgnoreCase("NotInterested")) {
+                if (selectedEvent.equalsIgnoreCase("NotInterested")) {
                     movieEntity = dislikeMovies.get((int) (Math.random() * dislikeMovies.size()));
                 } else {
                     movieEntity = selectedMovies.get((int) (Math.random() * selectedMovies.size()));

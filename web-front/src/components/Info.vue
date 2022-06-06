@@ -63,9 +63,10 @@
     推荐列表:
     <div class="demo_warp" style="text-align:left">
       <ul class="tab_tit">
-        <li :class="n==1?'active':''" @click="n=1">综合推荐</li>
+        <li :class="n==1?'active':''" @click="n=1">随机推荐</li>
         <li :class="n==2?'active':''" @click="n=2">ALS推荐</li>
         <li :class="n==3?'active':''" @click="n=3">ItemCF推荐</li>
+        <li :class="n==4?'active':''" @click="clickRealtimeRecommend">实时推荐</li>
       </ul>
       <div class="tab_con">
         <div v-show="n==1">
@@ -85,7 +86,7 @@
             </span>
                   <p class="ptext">{{ item.name }}</p>
                   <p>{{ item.category }}</p>
-<!--                  <p>{{ item.region }}</p>-->
+                  <!--                  <p>{{ item.region }}</p>-->
                 </el-col>
               </el-row>
             </div>
@@ -108,7 +109,7 @@
             </span>
                   <p class="ptext">{{ item.name }}</p>
                   <p>{{ item.category }}</p>
-<!--                  <p>{{ item.region }}</p>-->
+                  <!--                  <p>{{ item.region }}</p>-->
                 </el-col>
               </el-row>
             </div>
@@ -131,7 +132,30 @@
             </span>
                   <p class="ptext">{{ item.name }}</p>
                   <p>{{ item.category }}</p>
-<!--                  <p>{{ item.region }}</p>-->
+                  <!--                  <p>{{ item.region }}</p>-->
+                </el-col>
+              </el-row>
+            </div>
+          </el-card>
+        </div>
+        <div v-show="n==4">
+          <el-card v-if="n==4" shadow="never">
+            <div>
+              <el-row :gutter="10">
+                <el-col
+                  :span="4"
+                  :class="{ line: (index + 1) % 5 }"
+                  style="margin:15px 0px;"
+                  v-for="(item, index) in realTimeRecommendList"
+                  :key="index"
+                >
+            <span>
+                <img :src="item.picUrl" alt="" style="width: 120px;height: 120px" :id="item.id" @click="clickRecommend"
+                     v-click-stat="{event_name:'click',type:'button'}">
+            </span>
+                  <p class="ptext">{{ item.name }}</p>
+                  <p>{{ item.category }}</p>
+                  <!--                  <p>{{ item.region }}</p>-->
                 </el-col>
               </el-row>
             </div>
@@ -149,7 +173,7 @@
   display: flex;
   flex: 1;
   margin: .2rem;
-  cursor:pointer;
+  cursor: pointer;
 }
 
 .demo_warp .active {
@@ -177,7 +201,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100px;
-  margin:0 auto;
+  margin: 0 auto;
+  height: 20px;
 }
 </style>
 <script>
@@ -186,10 +211,12 @@ export default {
   data() {
     return {
       url: '',
+      currentUser: '',
       movieData: {},
       recommendList: [],
       alsRecommendList: [],
       itemCFRecommendList: [],
+      realTimeRecommendList: [],
       n: 1
     }
   },
@@ -201,6 +228,10 @@ export default {
     this.loadItemCFRecommend()
   },
   methods: {
+    clickRealtimeRecommend() {
+      this.n = 4
+      this.loadRealTimeRecommendList()
+    },
     loadALSRecommend() {
       let token = window.sessionStorage.getItem("token")
       if (!token) {
@@ -239,6 +270,26 @@ export default {
         }
       })
     },
+    loadRealTimeRecommendList() {
+      let token = window.sessionStorage.getItem("token")
+      if (!token) {
+        console.log('丢失登录信息')
+        return
+      }
+      let fetchUrl = '/recommend/getRealTimeList?token=' + token
+      this.$http({
+        method: 'get',
+        url: fetchUrl,
+      }).then(({data}) => {
+        if (data.code === 200) {
+          this.realTimeRecommendList = data.data
+          console.log("请求实时item推荐列表: " + this.realTimeRecommendList)
+        } else {
+          console.log("请求实时推荐列表失败")
+        }
+      })
+    },
+
     loadMovieDataById() {
       let fetchUrl = '/movie/getById?id=' + this.$route.params.id
       this.$http({
@@ -266,6 +317,7 @@ export default {
         url: fetchUrl,
       }).then(({data}) => {
         if (data.code === 200) {
+          console.log("随机推荐哦哦哦")
           this.recommendList = data.data.content
           console.log(this.recommendList)
         } else {
@@ -276,6 +328,7 @@ export default {
     clickRecommend(e) {
       console.log(e)
       let id = e.target.id
+      this.loadRealTimeRecommendList()
       this.$router.push('/info/' + id)
       this.$router.go()
     }
