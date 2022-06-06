@@ -8,6 +8,7 @@ import com.chandler.demo.recommend.entities.UserBehaviorEntity;
 import com.chandler.demo.recommend.entities.UserEntity;
 import com.chandler.demo.recommend.model.AjaxResult;
 import com.chandler.demo.recommend.model.UploadData;
+import com.chandler.demo.recommend.service.LoginService;
 import com.chandler.demo.recommend.service.RealTimeService;
 import com.chandler.demo.recommend.utils.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,8 +21,6 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static com.chandler.demo.recommend.model.SessionContainer.userTokenMap;
 
 @RestController
 @RequestMapping("/event")
@@ -39,15 +38,18 @@ public class EventController {
     @Autowired
     RealTimeService realTimeService;
 
+    @Autowired
+    LoginService loginService;
+
     @PostMapping("/upload")
     public AjaxResult upload(@RequestBody UploadData uploadData) {
         System.out.println(uploadData.toString());
         UserBehaviorEntity entity = new UserBehaviorEntity();
-        if (StringUtils.isEmpty(uploadData.getToken()) || userTokenMap.get(uploadData.getToken()) == null) {
+        if (StringUtils.isEmpty(uploadData.getToken()) || loginService.getUserByToken(uploadData.getToken()) == null) {
             return AjaxResult.error("token or user is null");
         }
 
-        entity.setUserId(userTokenMap.get(uploadData.getToken()));
+        entity.setUserId(loginService.getUserByToken(uploadData.getToken()));
         entity.setAgent(uploadData.getAgent());
         entity.setEvent(uploadData.getEvent());
         String[] movieInfos = uploadData.getMovieLink().split("/");

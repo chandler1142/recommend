@@ -3,6 +3,7 @@ package com.chandler.demo.recommend.controller;
 import com.chandler.demo.recommend.dao.MovieRepository;
 import com.chandler.demo.recommend.entities.MovieEntity;
 import com.chandler.demo.recommend.model.AjaxResult;
+import com.chandler.demo.recommend.service.LoginService;
 import com.chandler.demo.recommend.service.RealTimeService;
 import com.chandler.demo.recommend.utils.RedisUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,8 +20,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static com.chandler.demo.recommend.model.SessionContainer.userTokenMap;
-
 @RestController
 @RequestMapping("/recommend")
 public class RecommendController {
@@ -34,9 +33,12 @@ public class RecommendController {
     @Autowired
     RealTimeService realTimeService;
 
+    @Autowired
+    LoginService loginService;
+
     @GetMapping("/getByUserToken")
     public AjaxResult getByUserToken(@RequestParam("token") String userToken) {
-        System.out.println("recommend for user: " + userTokenMap.get(userToken));
+        System.out.println("recommend for user: " +  loginService.getUserByToken(userToken));
         Integer page = (int) (Math.random() * 100);
         Integer pageSize = 12;
         PageRequest pageRequest = PageRequest.of(page, pageSize, Sort.Direction.ASC, "id");
@@ -46,7 +48,7 @@ public class RecommendController {
 
     @GetMapping("/getByItemCF")
     public AjaxResult getByItemCF(@RequestParam("token") String userToken) {
-        Integer userId = userTokenMap.get(userToken);
+        Integer userId =  loginService.getUserByToken(userToken);
         //方便测试
         if (userId == null) {
             userId = 2313;
@@ -61,7 +63,7 @@ public class RecommendController {
 
     @GetMapping("/getByALS")
     public AjaxResult getByALS(@RequestParam("token") String userToken) {
-        Integer userId = userTokenMap.get(userToken);
+        Integer userId = loginService.getUserByToken(userToken);
         //方便测试
         if (userId == null) {
             userId = 2313;
@@ -76,7 +78,7 @@ public class RecommendController {
 
     @GetMapping("getRealTimeList")
     public AjaxResult getRealTimeList(@RequestParam("token") String userToken) {
-        Integer userId = userTokenMap.get(userToken);
+        Integer userId =  loginService.getUserByToken(userToken);
         //方便测试
         if (userId == null) {
             userId = 2313;

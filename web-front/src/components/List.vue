@@ -1,5 +1,8 @@
 <template>
   <div>
+    <div style="text-align: right;padding-bottom: 50px">
+      欢迎你, {{currentUser}}
+    </div>
     <el-table
       :data="tableData"
       style="width: 100%"
@@ -59,7 +62,8 @@ export default {
       tableData: [],
       currentPage: 1, //当前页数
       total: 0, //总数据条数
-      pageSize: 10 //每页显示条数
+      pageSize: 10, //每页显示条数
+      currentUser: window.sessionStorage.getItem("currentUser")
     };
   },
   mounted() {
