@@ -121,21 +121,22 @@ public class RealTimeService implements CommandLineRunner {
         //所有类别跟电影类似的电影都增益
         String[] updateCategories = clickMovie.getCategory().split(",");
         for (String firstCategory : updateCategories) {
-            List<MovieEntity> relatedMovies = movieEntities.stream().filter(m -> {
-                return m.getCategory().contains(firstCategory);
-            }).collect(Collectors.toList());
-
-            for (MovieEntity u : relatedMovies) {
-                BetaParam param = betaParamList.stream().filter(betaParam -> {
-                    return betaParam.getUserId().equals(userId) && betaParam.getMovie().equals(u.getId());
-                }).findFirst().get();
-
-                BetaDistribution betaDistribution = param.getBetaDistribution();
-                BetaParam updatedParam = new BetaParam(userId, new BetaDistribution(betaDistribution.getAlpha() + 1, betaDistribution.getBeta()), u.getId());
-                betaParamList.remove(param);
-                betaParamList.add(updatedParam);
-                System.out.println("更新电影: " + u.getName() + " alpha: " + updatedParam.getBetaDistribution().getAlpha() + " beta: " + updatedParam.getBetaDistribution().getBeta() + " mean: " + updatedParam.getBetaDistribution().getNumericalMean() + " original mean: " + param.getBetaDistribution().getNumericalMean());
-            }
+            movieEntities.stream()
+                    .filter(m -> m.getCategory().contains(firstCategory))
+                    .forEach(relatedMovie -> {
+                        BetaParam param = betaParamList.stream()
+                                .filter(betaParam -> betaParam.getUserId().equals(userId) && betaParam.getMovie().equals(relatedMovie.getId()))
+                                .findFirst().get();
+                        BetaDistribution betaDistribution = param.getBetaDistribution();
+                        BetaParam updatedParam = new BetaParam(userId, new BetaDistribution(betaDistribution.getAlpha() + 1, betaDistribution.getBeta()), relatedMovie.getId());
+                        betaParamList.remove(param);
+                        betaParamList.add(updatedParam);
+                        System.out.println("更新电影: " + relatedMovie.getName() +
+                                " alpha: " + updatedParam.getBetaDistribution().getAlpha() +
+                                " beta: " + updatedParam.getBetaDistribution().getBeta() +
+                                " mean: " + updatedParam.getBetaDistribution().getNumericalMean() +
+                                " original mean: " + param.getBetaDistribution().getNumericalMean());
+                    });
         }
 
         //已经推荐的电影没有点击的，进行减益
@@ -143,15 +144,19 @@ public class RealTimeService implements CommandLineRunner {
             for (MovieEntity current : currentRecommendList.get(userId)) {
                 if (!current.getId().equals(movieId)) {
                     //推荐了但是没有点
-                    BetaParam param = betaParamList.stream().filter(betaParam -> {
-                        return betaParam.getUserId().equals(userId) && betaParam.getMovie().equals(current.getId());
-                    }).findFirst().get();
+                    BetaParam param = betaParamList.stream()
+                            .filter(betaParam -> betaParam.getUserId().equals(userId) && betaParam.getMovie().equals(current.getId()))
+                            .findFirst().get();
                     BetaDistribution betaDistribution = param.getBetaDistribution();
                     //beta 加上当前电影对应的类别的个数
                     BetaParam updatedParam = new BetaParam(userId, new BetaDistribution(betaDistribution.getAlpha(), betaDistribution.getBeta() + current.getCategory().split(",").length), current.getId());
                     betaParamList.remove(param);
                     betaParamList.add(updatedParam);
-                    System.out.println("更新电影: " + current.getName() + " alpha: " + updatedParam.getBetaDistribution().getAlpha() + " beta: " + updatedParam.getBetaDistribution().getBeta() + " mean: " + updatedParam.getBetaDistribution().getNumericalMean() + " original mean: " + param.getBetaDistribution().getNumericalMean());
+                    System.out.println("更新电影: " + current.getName() +
+                            " alpha: " + updatedParam.getBetaDistribution().getAlpha() +
+                            " beta: " + updatedParam.getBetaDistribution().getBeta() +
+                            " mean: " + updatedParam.getBetaDistribution().getNumericalMean() +
+                            " original mean: " + param.getBetaDistribution().getNumericalMean());
                 }
             }
         }
